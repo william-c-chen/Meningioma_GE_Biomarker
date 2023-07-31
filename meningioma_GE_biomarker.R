@@ -60,18 +60,18 @@ wanted.genes.housekeeping = c('ACTB','CASC3','GUSB','KIAA1715','MRPL19','POP4','
 wanted.genes = c('ARID1B','CCL21','CCN1','CCND2','CD3E','CDC20','CDK6','CDKN2A','CDKN2C','CHEK1','CKS2','COL1A1','ESR1','EZH2','FBLIM1','FGFR4','GAS1','IFNGR1','IGF2','KDR','KIF20A','KRT14','LINC02593','MDM4','MMP9','MUTYH','MYBL1','PGK1','PGR','PIM1','SPOP','TAGLN','TMEM30B','USF1')
 nb = 500 #Number of submodels
 for (i in seq(1,nb)){
-    #Bootstrap resampling with replacement
-    #ns.trim is the positive control normalized data matrix depending on context
-    train_ind <- sample(seq_len(nrow(ns.trim)), size = dim(ns.trim,1),replace = TRUE)
-    x_var = log2(data.matrix((ns.trim[train_ind,wanted.genes]))/apply(ns.trim[train_ind,wanted.genes.housekeeping],1,gm_mean))
-    y_var <- traindat$Risk.Score[match(ns.trim[train_ind,]$ID,traindat$ID)]
-    lambda_seq <- 10^seq(2, -2, by = -.1)
-    #Using glmnet function to build  ridge regression
-    fit <- glmnet(x_var, y_var, alpha = 0, lambda  = lambda_seq)
-    ridge_cv <- cv.glmnet(x_var, y_var, alpha = 0, lambda = lambda_seq)
-    best_lambda <- ridge_cv$lambda.min
-    best_ridge <- glmnet(x_var, y_var, alpha = 0, lambda = best_lambda)
-    all.coefs[[i]] = best_ridge #Resulting list containing 500 submodels
+  #Bootstrap resampling with replacement
+  #ns.trim is the positive control normalized data matrix depending on context
+  train_ind <- sample(seq_len(nrow(ns.trim)), size = dim(ns.trim,1),replace = TRUE)
+  x_var = log2(data.matrix((ns.trim[train_ind,wanted.genes]))/apply(ns.trim[train_ind,wanted.genes.housekeeping],1,gm_mean))
+  y_var <- traindat$Risk.Score[match(ns.trim[train_ind,]$ID,traindat$ID)]
+  lambda_seq <- 10^seq(2, -2, by = -.1)
+  #Using glmnet function to build  ridge regression
+  fit <- glmnet(x_var, y_var, alpha = 0, lambda  = lambda_seq)
+  ridge_cv <- cv.glmnet(x_var, y_var, alpha = 0, lambda = lambda_seq)
+  best_lambda <- ridge_cv$lambda.min
+  best_ridge <- glmnet(x_var, y_var, alpha = 0, lambda = best_lambda)
+  all.coefs[[i]] = best_ridge #Resulting list containing 500 submodels
 }
 
 #Validation risk score calculation
@@ -134,6 +134,11 @@ for (i in seq(1,b)){
   deltas = c(deltas,delta)
 }
 
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
+
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(WHO.2021)&!is.na(Chen))
@@ -145,6 +150,11 @@ for (i in seq(1,b)){
   delta = s1$AUC - d$AUC
   deltas = c(deltas,delta)
 }
+
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
 
 b = 1000 #resample 1000 times
 deltas = c()
@@ -158,6 +168,11 @@ for (i in seq(1,b)){
   deltas = c(deltas,delta)
 }
 
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
+
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(Sahm)&!is.na(Chen))
@@ -169,6 +184,11 @@ for (i in seq(1,b)){
   delta = s1$AUC - d$AUC
   deltas = c(deltas,delta)
 }
+
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
 
 b = 1000 #resample 1000 times
 deltas = c()
@@ -182,6 +202,11 @@ for (i in seq(1,b)){
   deltas = c(deltas,delta)
 }
 
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
+
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(Patel)&!is.na(Chen))
@@ -193,6 +218,11 @@ for (i in seq(1,b)){
   delta = s1$AUC - d$AUC
   deltas = c(deltas,delta)
 }
+
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
 
 b = 1000 #resample 1000 times
 deltas = c()
@@ -206,6 +236,11 @@ for (i in seq(1,b)){
   deltas = c(deltas,delta)
 }
 
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
+
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(`4_subgroups`)&!is.na(Chen))
@@ -218,6 +253,11 @@ for (i in seq(1,b)){
   deltas = c(deltas,delta)
 }
 
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
+
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(DNA_methylation_groups)&!is.na(Chen))
@@ -229,6 +269,11 @@ for (i in seq(1,b)){
   delta = s1$AUC - d$AUC
   deltas = c(deltas,delta)
 }
+
+median(deltas) 
+quantile(deltas,0.025) 
+quantile(deltas,0.975)
+sum(deltas<0)/1000 #bootstrap P value
 
 #Nomograms and calibration curves
 data=df
