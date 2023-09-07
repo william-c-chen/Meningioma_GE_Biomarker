@@ -82,13 +82,13 @@ ns.trim.val = rbind(subset(ns.trim.val,Tissue_Type=='Frozen'),subset(ns.trim.val
 ns.trim.val$RiskScores = val.RiskScores
 
 #Generate pairwise likelihood-ratio test heatmap comparing classification systems
-
 #Grade = WHO 2016 grade, WHO.2021 = WHO 2021 grade, Chen = targeted gene expression risk score, Maas = DNA methylation based "integrated score", Sahm = DNA methylation families, Driver = "integrated grade", Olar.Lasso = methylation probe based scoree, Patel = "gene expresion types", 4_subgroups = DNA subgroups, DNA_methylation_groups = DNA groups.
 
+df = subset(dat,dat$Site!='UCSF') #Validation data frame
 models = c("Chen","WHO.2021","Sahm","Driver","Olar.Lasso","`4_subgroups`","Maas","Patel","DNA_methylation_groups","Grade") 
 
 df.heatmap = subset(df,!is.na(df$Sahm)&!is.na(df$Chen)&!is.na(df$Driver)&!is.na(df$Patel)&!is.na(df$WHO.2021)) #Obtain complete cases with data available for all comparison classification systems, N=290
-confusion_pvals = matrix(nrow=10,ncol=10)
+confusion_pvals = matrix(nrow=10,ncol=10) #complete data
 
 for (i in seq(1,10)){
   for (j in seq(1,10)){
@@ -120,8 +120,7 @@ brier <- pec(list("Chen" = mod0, "Chen discrete"=mod1, "Driver"=mod2, "Driver di
 print(brier)
 plot(brier,xlim=c(0,10),ylim = c(0,0.25),legend = FALSE)
 
-#Bootstrap delta-AUC, variable N depending on pairwise complete cases
-
+#Bootstrap delta-AUC, with variable N depending on pairwise complete cases
 b = 1000 #resample 1000 times
 deltas = c()
 df.2 = subset(df,!is.na(Driver)&!is.na(Chen))
@@ -277,19 +276,15 @@ sum(deltas<0)/1000 #bootstrap P value
 
 #Nomograms and calibration curves
 data=df
-
 data$Extent.Of.Resection = as.factor(data$EOR)
 data$Adjuvant.Radiotherapy = as.factor(data$Adj_RT)
 data$Setting = as.factor(data$Recurrent)
 data$Gene.Risk.Score = (data$Chen)
-
 data$Extent.Of.Resection = revalue(data$Extent.Of.Resection, c("GTR"="Gross-total", "STR"="Sub-total"))
 data$Adjuvant.Radiotherapy = revalue(data$Adjuvant.Radiotherapy, c("0"="No", "1"="Yes"))
 data$Setting = revalue(data$Setting, c("0"="Primary", "1"="Recurrent"))
-
 data$WHO.Grade.2021 = data$WHO.2021
 data$WHO.Grade.2016 = data$Grade
-
 data = data[,c('Age','LFFR','LF','OS','VS','Extent.Of.Resection','Adjuvant.Radiotherapy','Setting','Gene.Risk.Score','WHO.Grade.2021','WHO.Grade.2016')]
 
 dd = datadist(data)
@@ -316,29 +311,23 @@ t2=Survival(f2)
 nom=nomogram(f2,fun=list(function(x)t2(5,x)),funlabel = '5-year OS')
 plot(nom)
 
-# C-index and calibration plots for methylation model
-#Optimism corrected c-index
+#Calibration plots, WHO 2021 grade nomogram, LFFR
 mod1=as.formula(Surv(LFFR,LF)~Gene.Risk.Score+WHO.Grade.2021+Extent.Of.Resection+Setting)
 f <- cph(mod1,data=data,x=TRUE,y=TRUE)
 calib = rms::calibrate(cph(mod1,data=data,x=TRUE,y=TRUE,surv=TRUE,time.inc=5),u=5,conf.int=TRUE,B=1000,cmethod='KM',m=75)
 plot(calib,xlab='Predicted 5-year LFFR',ylab='Observed 5-year LFFR',xlim=c(0,1))
-
-# C-index and calibration plots for methylation model
-#Optimism corrected c-index
+#Calibration plots, WHO 2016 grade nomogram, LFFR
 mod1=as.formula(Surv(LFFR,LF)~Gene.Risk.Score+WHO.Grade.2016+Extent.Of.Resection+Setting)
 f <- cph(mod1,data=data,x=TRUE,y=TRUE)
 calib = rms::calibrate(cph(mod1,data=data,x=TRUE,y=TRUE,surv=TRUE,time.inc=5),u=5,conf.int=TRUE,B=1000,cmethod='KM',m=150)
 plot(calib,xlab='Predicted 5-year LFFR',ylab='Observed 5-year LFFR',xlim=c(0,1))
 
-# C-index and calibration plots for methylation model
-#Optimism corrected c-index
+#Calibration plots, WHO 2021 grade nomogram, OS
 mod1=as.formula(Surv(OS,VS)~Age+Gene.Risk.Score+WHO.Grade.2021+Extent.Of.Resection+Setting)
 f <- cph(mod1,data=data,x=TRUE,y=TRUE)
 calib = rms::calibrate(cph(mod1,data=data,x=TRUE,y=TRUE,surv=TRUE,time.inc=5),u=5,conf.int=TRUE,B=1000,cmethod='KM',m=75)
 plot(calib,xlab='Predicted 5-year OS',ylab='Observed 5-year OS',xlim=c(0,1))
-
-# C-index and calibration plots for methylation model
-#Optimism corrected c-index
+#Calibration plots, WHO 2016 grade nomogram, OS
 mod1=as.formula(Surv(OS,VS)~Age+Gene.Risk.Score+WHO.Grade.2016+Extent.Of.Resection+Setting)
 f <- cph(mod1,data=data,x=TRUE,y=TRUE)
 calib = rms::calibrate(cph(mod1,data=data,x=TRUE,y=TRUE,surv=TRUE,time.inc=5),u=5,conf.int=TRUE,B=1000,cmethod='KM',m=150)
@@ -356,15 +345,14 @@ tmp5$LF = as.numeric(as.character(tmp5$LF))
 tmp5.low = subset(tmp5,!((RiskGroup=='Intermediate'&EOR=='STR')|RiskGroup=='High'))
 tmp5.high = subset(tmp5,(RiskGroup=='Intermediate'&EOR=='STR')|RiskGroup=='High')
 
-#Unfavorable strata match
+#Unfavorable strata propensity match
 modmatch = matchit(RT~RiskScore+Grade+EOR,method='nearest',caliper=0.2,ratio = 3,data=tmp5.high,replace = FALSE)
 summary(modmatch)
 matcheddata = match.data(modmatch)
 ggsurvplot(survfit(Surv(LFFR,LF)~RT,data=matcheddata),pval=TRUE,risk.table = TRUE,xlim=c(0,10))
 
-#Favorable strata match
+#Favorable strata propensity match
 modmatch = matchit(RT~RiskScore+Grade+EOR,method='nearest',caliper=0.2,ratio = 3,data=tmp5.low,replace = FALSE)
 summary(modmatch)
 matcheddata = match.data(modmatch)
 ggsurvplot(survfit(Surv(LFFR,LF)~RT,data=matcheddata),pval=TRUE,risk.table = TRUE,xlim=c(0,10))
-
